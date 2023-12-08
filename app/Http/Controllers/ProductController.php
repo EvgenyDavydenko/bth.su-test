@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\Request;
+use App\Http\Requests\ProductRequest;
 
 class ProductController extends Controller
 {
@@ -15,7 +17,7 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::available()->orderBy('updated_at', 'desc')->get();
-        return $products;
+        return view('products.index', ['products' => $products]);
     }
 
     /**
@@ -25,18 +27,20 @@ class ProductController extends Controller
      */
     public function create()
     {
-        //
+        return view('products.create');
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\ProductRequest  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ProductRequest $request)
     {
-        //
+        $product = new Product($request->all());
+        $product->save();
+        return redirect()->route('products.index')->with('success', 'Ваш продукт успешно создан!');
     }
 
     /**
@@ -47,7 +51,8 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        //
+        $product = Product::available()->find($id);
+        return view('products.show', ['product' => $product]);
     }
 
     /**
@@ -58,19 +63,25 @@ class ProductController extends Controller
      */
     public function edit($id)
     {
-        //
+        $product = Product::find($id);
+        return view('products.edit', ['product' => $product]);
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \App\Http\Requests\ProductRequest  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(ProductRequest $request, $id)
     {
-        //
+        if (!User::isAdmin()) {
+            return redirect()->route('products.index')->withErrors('Пользователь должен быть админом!');
+        }
+        $product = Product::find($request->id);
+        $product->update($request->all());
+        return redirect()->route('products.index')->with('success', 'Ваш продукт успешно отредактирован!');
     }
 
     /**
@@ -81,6 +92,11 @@ class ProductController extends Controller
      */
     public function destroy($id)
     {
-        //
+        if (!User::isAdmin()) {
+            return redirect()->route('products.index')->withErrors('Пользователь должен быть админом!');
+        }
+        $product = Product::find($id);
+        $product->delete();
+        return redirect()->route('products.index')->with('success', 'Продукт успешно удален!');
     }
 }
